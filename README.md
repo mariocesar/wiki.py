@@ -1,6 +1,6 @@
 # Writing web applications with Python
 
-This tutorial is a reply to the HN popular article about [Writing Web Applications using only Go](https://news.ycombinator.com/item?id=13247858), I'm curious if is possible teach to build web applications with Python and just its standard modules. So far it appears that Go has a more featured standard library; Python, even if it has all the tools, gives the developer the work to implement a useful-enough application. I believe is for the same reason, that python have rich and broad options in Web Frameworks.
+This tutorial is a reply to the HN popular article about [Writing Web Applications using only Go](https://news.ycombinator.com/item?id=13247858), I'm curious if is possible teach to build web applications with Python and just its standard modules. So far it appears that Go has a more featured standard library; Python, even if it has all the tools, gives the developer the work to implement a useful-enough application almost from scratch. I believe is for the same reason, that python have a rich and broad options in Web Frameworks.
 
 So this Tutorial follows the structure and tone from the Go original docs, I find it useful and well suited for teaching.
 
