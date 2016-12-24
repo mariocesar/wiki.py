@@ -1,16 +1,30 @@
 <html>
 <head>
   <title>${title}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
+<nav>
+  <h1>
+    <span class="brand">wiki.py</span>
+    <a href="/">Root</a> / ${title}
+    <small><a href="/edit/${title}">[edit]</a></small>
+  </h1>
+</nav>
 
-<h1><a href="/">Root</a> / ${title}</h1>
+${content}
 
-<p>[<a href="/edit/${title}">edit</a>]</p>
-
-<div>
-  ${content}
-</div>
+<footer>
+  <p>
+    See the source code in <a href="https://github.com/mariocesar/wiki.py">github.com/mariocesar/wiki.py</a>
+    and learn how to make Web applications with Python using just the standard modules.
+  </p>
+  <p>
+    Made by <a href="https://twitter.com/mariocesar_bo">@mariocesar_bo</a>
+  </p>
+</footer>
 
 </body>
 </html>

@@ -1,33 +1,33 @@
 <html>
 <head>
   <title>${title}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
 
-<h1><a href="/">Root</a> / ${title}</h1>
-
-<p>[<a href="/view/${title}">view</a>]</p>
+<nav>
+  <h1>
+    <span class="brand">wiki.py</span>
+    <a href="/">Root</a> / ${title}
+    <small><a href="/view/${title}">[view]</a></small>
+  </h1>
+</nav>
 
 <form action="" method="post">
   <p>
     <label for="title">Title</label>
-  </p>
-
-  <p>
-    <input name="title" id="title" type="text" value="${title}">
+    <input name="title" id="title" type="text" class="text-input" value="${title}">
   </p>
 
   <p>
     <label for="content">Content</label>
-  </p>
-
-  <p>
-    <textarea name="content" id="content" rows="20" cols="80">${content}</textarea>
+    <textarea name="content" id="content" cols="80" class="text-input">${content}</textarea>
   </p>
   <p>
     <button type="submit">Save</button>
   </p>
 </form>
-
 </body>
 </html>

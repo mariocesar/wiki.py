@@ -34,9 +34,9 @@ Assumed knowledge:
 
 ## Handling Not found pages
 
-## Error handling
+## Using Wiki markup
 
-## Validation
+## Serving static files
 
 ## Try it !
 

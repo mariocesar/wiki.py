@@ -1,9 +1,12 @@
 import contextlib
 import io
+import os
 import re
 import string
+from datetime import datetime
 from urllib.parse import parse_qs, unquote_plus
 from wsgiref.simple_server import make_server
+from wsgiref.handlers import format_date_time
 
 
 # Classes
@@ -80,6 +83,28 @@ def text_response(start_response, content, status=200):
     start_response(f"{status} OK", [('Content-Type', 'text/plain; charset=utf-8')])
 
     return [content.encode()]
+
+
+def fileobj_response(start_response, path):
+    """Shortcut to return a text/plain response."""
+
+    try:
+        with open(path, 'rb') as fobj:
+            fs = os.fstat(fobj.fileno())  # Get file size
+
+            start_response(f"200 OK", [
+                ('Content-Type', 'application/octet-stream'),
+                ('Content-Length', str(fs[6])),
+                ('Last-Modified', format_date_time(fs[8]))
+            ])
+
+            data = fobj.read(1024)
+
+            while data:
+                yield data
+                data = fobj.read(1024)
+    except OSError:
+        return text_response(start_response, 'File not found', status=404)
 
 
 def escape(value):
@@ -186,7 +211,15 @@ def edit_handler(environ, start_response):
             {'title': page.title, 'content': page.content})
 
 
-# WSGI Application
+def assets_handler(environ, start_response):
+    path = environ['app.match'].group('path')
+    path = os.path.join('assets/', path)
+
+    if os.path.isfile(path):
+        return fileobj_response(start_response, path)
+
+    return text_response(start_response, 'File Not found', status=404)
+
 
 class Application:
     _handlers = []
@@ -212,6 +245,7 @@ with make_server('', 8000, Application()) as httpd:
     httpd.application.add_handler(r'^/$', home_handler)
     httpd.application.add_handler(r'^/view/(?P<title>[A-Z][A-Za-z0-9]+)$', view_handler)
     httpd.application.add_handler(r'^/edit/(?P<title>[A-Z][A-Za-z0-9]+)$', edit_handler)
+    httpd.application.add_handler(r'^/assets/(?P<path>[\w\d\/-_.]+)$', assets_handler)
 
     try:
         httpd.serve_forever()
