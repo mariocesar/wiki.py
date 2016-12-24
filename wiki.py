@@ -3,10 +3,9 @@ import io
 import os
 import re
 import string
-from datetime import datetime
 from urllib.parse import parse_qs, unquote_plus
-from wsgiref.simple_server import make_server
 from wsgiref.handlers import format_date_time
+from wsgiref.simple_server import make_server
 
 
 # Classes
@@ -57,7 +56,7 @@ class Form:
 
 def redirect(start_response, location):
     """Shortcut to return a redirect response."""
-    start_response("302 OK", [('Location', location), ])
+    start_response("302 OK", [('Location', location)])
 
     return [b'']
 
@@ -67,20 +66,25 @@ def render_template(template_path, **context):
     with open(template_path, 'r') as fileobj:
         tpl = string.Template(fileobj.read())
 
-    return tpl.safe_substitute(**context).encode('utf-8')
+    return tpl.safe_substitute(**context)
 
 
 def template_response(start_response, template_path, context, status=200):
-    """Shortcut to return a text/html response using a template."""
-    start_response(f"{status} OK", [('Content-Type', 'text/html; charset=utf-8')])
+    """Shortcut to return an html response using a template."""
+    start_response(f"{status} OK", [
+        ('Content-Type', 'text/html; charset=utf-8')
+    ])
+
     content = render_template(template_path, **context)
 
-    return [content]
+    return [content.encode('utf-8')]
 
 
 def text_response(start_response, content, status=200):
     """Shortcut to return a text/plain response."""
-    start_response(f"{status} OK", [('Content-Type', 'text/plain; charset=utf-8')])
+    start_response(f"{status} OK", [
+        ('Content-Type', 'text/plain; charset=utf-8')
+    ])
 
     return [content.encode()]
 
@@ -116,7 +120,7 @@ def escape(value):
 
 
 def wiki_text(value):
-    """Escape and renders text using a basic wiki syntax"""
+    """Renders text using a basic wiki syntax."""
 
     value = escape(value)
 
@@ -130,15 +134,16 @@ def wiki_text(value):
 
             if inside_pre_block:
                 if chunk.startswith('```'):
-                    # Close the preformatted block
+                    # Close the preformatted block and set the state to false.
                     inside_pre_block = False
                     print('</pre>')
                     continue
 
                 else:
-                    print(chunk)
+                    # Do not process the chunk if you are still inside a
+                    # preformatted block, just return it as it is.
 
-                    # Do not process the chunk if you are still inside a preformatted block
+                    print(chunk)
                     continue
 
             if chunk.startswith('#'):
@@ -147,6 +152,7 @@ def wiki_text(value):
                 match = re.match('^(?P<level>[#]+)?\s*(?P<text>.*)', chunk)
                 level = len(match.group('level'))
                 text = match.group('text')
+
                 print(f'<h{level}>{text}</h{level}>')
 
             elif chunk.startswith('```'):
@@ -156,7 +162,8 @@ def wiki_text(value):
                 print('<pre>')
 
             else:
-                # Linkify
+                # Linkify. Search for the form [CamelCase] and
+                # wraps a link on every ocurrence.
                 chunk_with_links = re.sub(
                     r'\[([A-Z]\w+)\]',
                     r'<a href="/view/\1">\1</a> ',
@@ -171,10 +178,12 @@ def wiki_text(value):
 # Handlers
 
 def home_handler(environ, start_response):
+    """The main handler, just redirects to the default wiki Page."""
     return redirect(start_response, '/view/Home')
 
 
 def view_handler(environ, start_response):
+    """View handler loads and render the given wiki Page."""
     title = environ['app.match'].group('title')
 
     page = Page.load(title)
@@ -189,6 +198,7 @@ def view_handler(environ, start_response):
 
 
 def edit_handler(environ, start_response):
+    """Edit a wiki Page, if the page doesn't exists it will create it."""
     title = environ['app.match'].group('title')
     page = Page.load(title)
 
@@ -212,6 +222,7 @@ def edit_handler(environ, start_response):
 
 
 def assets_handler(environ, start_response):
+    """Serves all found files in the assets directory."""
     path = environ['app.match'].group('path')
     path = os.path.join('assets/', path)
 
@@ -221,10 +232,11 @@ def assets_handler(environ, start_response):
     return text_response(start_response, 'File Not found', status=404)
 
 
-class Application:
+class WebApp:
     _handlers = []
 
     def add_handler(self, urlpattern, handler):
+        """Register a handler to later resolve by matching the url pattern."""
         urlpattern = re.compile(urlpattern)
         self._handlers.append((urlpattern, handler))
 
@@ -239,13 +251,15 @@ class Application:
         return text_response(start_response, 'Not found', status=404)
 
 
-with make_server('', 8000, Application()) as httpd:
+app = WebApp()
+
+with make_server('', 8000, app) as httpd:
     print("Serving on port 8000...")
 
-    httpd.application.add_handler(r'^/$', home_handler)
-    httpd.application.add_handler(r'^/view/(?P<title>[A-Z][A-Za-z0-9]+)$', view_handler)
-    httpd.application.add_handler(r'^/edit/(?P<title>[A-Z][A-Za-z0-9]+)$', edit_handler)
-    httpd.application.add_handler(r'^/assets/(?P<path>[\w\d\/-_.]+)$', assets_handler)
+    app.add_handler(r'^/$', home_handler)
+    app.add_handler(r'^/view/(?P<title>[A-Z][A-Za-z0-9]+)$', view_handler)
+    app.add_handler(r'^/edit/(?P<title>[A-Z][A-Za-z0-9]+)$', edit_handler)
+    app.add_handler(r'^/assets/(?P<path>[\w\d\/-_.]+)$', assets_handler)
 
     try:
         httpd.serve_forever()
