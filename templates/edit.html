@@ -4,7 +4,7 @@
 </head>
 <body>
 
-<h1>${title}</h1>
+<h1><a href="/">Root</a> / ${title}</h1>
 
 <p>[<a href="/view/${title}">view</a>]</p>
 
@@ -22,9 +22,7 @@
   </p>
 
   <p>
-  <textarea name="content" id="content">
-    ${content}
-  </textarea>
+    <textarea name="content" id="content" rows="20" cols="80">${content}</textarea>
   </p>
   <p>
     <button type="submit">Save</button>
