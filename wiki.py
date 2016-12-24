@@ -42,7 +42,7 @@ def redirect(start_response, location):
         ('Location', location),
     ])
 
-    return []
+    return [b'']
 
 
 def render_template(template_path, **context):
