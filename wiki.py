@@ -1,9 +1,8 @@
+import contextlib
 import io
-import os
 import re
-from contextlib import contextmanager, redirect_stdout
-from string import Template
-from urllib.parse import parse_qs, quote_plus, unquote_plus
+import string
+from urllib.parse import parse_qs, unquote_plus
 from wsgiref.simple_server import make_server
 
 
@@ -66,7 +65,7 @@ def redirect(start_response, location):
 def render_template(template_path, **context):
     """Render a string using a file as template and the given context."""
     with open(template_path, 'r') as fileobj:
-        tpl = Template(fileobj.read())
+        tpl = string.Template(fileobj.read())
 
     return tpl.safe_substitute(**context).encode('utf-8')
 
@@ -100,27 +99,48 @@ def wiki_text(value):
     value = escape(value)
 
     # Redirects all print output to a buffer variable `output`
-    with io.StringIO() as output, redirect_stdout(output):
+    with io.StringIO() as output, contextlib.redirect_stdout(output):
+
+        inside_pre_block = False
 
         for chunk in value.split('\n'):
             chunk = chunk.strip()
 
+            if inside_pre_block:
+                if chunk.startswith('```'):
+                    # Close the preformatted block
+                    inside_pre_block = False
+                    print('</pre>')
+                    continue
+
+                else:
+                    print(chunk)
+
+                    # Do not process the chunk if you are still inside a preformatted block
+                    continue
+
             if chunk.startswith('#'):
                 # Extracts level and text from the text
+
                 match = re.match('^(?P<level>[#]+)?\s*(?P<text>.*)', chunk)
                 level = len(match.group('level'))
                 text = match.group('text')
-
                 print(f'<h{level}>{text}</h{level}>')
-            else:
 
-                # linkify
+            elif chunk.startswith('```'):
+                # Start preformatted block
+
+                inside_pre_block = True
+                print('<pre>')
+
+            else:
+                # Linkify
                 chunk_with_links = re.sub(
                     r'\[([A-Z]\w+)\]',
                     r'<a href="/view/\1">\1</a> ',
                     chunk)
 
-                # paragraph
+                # Paragraph
                 print(f'<p>{chunk_with_links}</p>')
 
         return output.getvalue()
