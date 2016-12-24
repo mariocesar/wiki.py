@@ -1,5 +1,6 @@
-# Writing web applications with Python
-
+====================================
+Writing web applications with Python
+====================================
 
 Covered in this tutorial:
 
@@ -14,24 +15,36 @@ Assumed knowledge:
 - Understanding of basic web technologies (HTTP, HTML)
 - Some UNIX/DOS command-line knowledge
 
-## Getting Started
 
-## Page object
+Getting Started
+---------------
 
-## Introducing wsgi applications
+Page object
+-----------
 
-## Serving handlers
+Introducing wsgi applications
+-----------------------------
 
-## Editing pages
+Serving handlers
+----------------
 
-## HTML templating
+Editing pages
+-------------
 
-## Handling Not found pages
+HTML templating
+---------------
 
-## Error handling
+Handling Not found pages
+------------------------
 
-## Validation
+Error handling
+--------------
 
-## Try it !
+Validation
+----------
 
-## Going Further
+Try it !
+--------
+
+Going Further
+-------------
