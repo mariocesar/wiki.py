@@ -13,11 +13,10 @@ Assumed knowledge:
 - Understanding of basic web technologies (HTTP, HTML)
 - Some UNIX/DOS command-line knowledge
 
-See it yourself:
-
-![demo](https://raw.githubusercontent.com/mariocesar/wiki.py/master/docs/_images/demo.gif)
-
-
 ## Getting Started
 
 Go to https://mariocesar.github.io/wiki.py/ for the full tutorial.
+
+## See it yourself
+
+![demo](https://raw.githubusercontent.com/mariocesar/wiki.py/master/docs/_images/demo.gif)
