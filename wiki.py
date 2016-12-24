@@ -9,9 +9,6 @@ from wsgiref.simple_server import make_server
 # Classes
 
 class Page:
-    title = None
-    content = None
-
     def __init__(self, title, content=None):
         self.title = title
         self.content = content
@@ -171,8 +168,8 @@ def edit_handler(environ, start_response):
     page = Page.load(title)
 
     if not page:
-        page = Page(title=title, content='')
-        page.save()
+        page = Page(title=title)
+        page.content = ''
 
     if environ['REQUEST_METHOD'] == 'POST':
         form = Form(environ)
@@ -194,13 +191,14 @@ def edit_handler(environ, start_response):
 class Application:
     _handlers = []
 
-    def add_handler(self, path, handler):
-        path_pattern = re.compile(path)
-        self._handlers.append((path_pattern, handler))
+    def add_handler(self, urlpattern, handler):
+        urlpattern = re.compile(urlpattern)
+        self._handlers.append((urlpattern, handler))
 
     def __call__(self, environ, start_response):
-        for path_pattern, handler in self._handlers:
-            match = path_pattern.match(environ.get('PATH_INFO', ''))
+        for urlpattern, handler in self._handlers:
+            match = urlpattern.match(environ.get('PATH_INFO', ''))
+
             if match:
                 environ['app.match'] = match
                 return handler(environ, start_response)
@@ -212,8 +210,8 @@ with make_server('', 8000, Application()) as httpd:
     print("Serving on port 8000...")
 
     httpd.application.add_handler(r'^/$', home_handler)
-    httpd.application.add_handler(r'^/view/(?P<title>\w+)$', view_handler)
-    httpd.application.add_handler(r'^/edit/(?P<title>\w+)$', edit_handler)
+    httpd.application.add_handler(r'^/view/(?P<title>[A-Z][A-Za-z0-9]+)$', view_handler)
+    httpd.application.add_handler(r'^/edit/(?P<title>[A-Z][A-Za-z0-9]+)$', edit_handler)
 
     try:
         httpd.serve_forever()
