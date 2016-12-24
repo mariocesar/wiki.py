@@ -1,6 +1,4 @@
-====================================
-Writing web applications with Python
-====================================
+# Writing web applications with Python
 
 Covered in this tutorial:
 
@@ -16,35 +14,6 @@ Assumed knowledge:
 - Some UNIX/DOS command-line knowledge
 
 
-Getting Started
----------------
+## Getting Started
 
-Page object
------------
-
-Introducing wsgi applications
------------------------------
-
-Serving handlers
-----------------
-
-Editing pages
--------------
-
-HTML templating
----------------
-
-Handling Not found pages
-------------------------
-
-Error handling
---------------
-
-Validation
-----------
-
-Try it !
---------
-
-Going Further
--------------
+Go to https://mariocesar.github.io/wiki.py/ for the full tutorial.
