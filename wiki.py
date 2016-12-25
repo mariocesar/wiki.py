@@ -7,7 +7,7 @@ import re
 import string
 from datetime import datetime
 
-from difflib import Differ, context_diff
+from difflib import context_diff
 from os.path import abspath, dirname, join, normcase
 from urllib.parse import parse_qs, unquote_plus
 from wsgiref.handlers import format_date_time
@@ -28,7 +28,6 @@ def location(*paths):
     """
     base = BASE_DIRECTORY
     paths = [normcase(p) for p in paths]
-
     path = abspath(join(base, *paths))
 
     # Check if the resulting path is part of the base part
@@ -87,35 +86,31 @@ class Page:
         def parse_log():
             with open(log_location, 'r') as fobj:
                 for line in fobj.readlines():
-                    if line.strip():
-                        timestamp, data = line.split(' - ', maxsplit=1)
+                    timestamp, data = line.split(' - ', maxsplit=1)
 
-                        def render_difflines():
-                            difflines = json.loads(data)
-                            lines = difflines[3:]
+                    yield '<div class="entry clearfix">'
+                    yield f'<div class="entry-timestamp">{timestamp}</div>'
+                    yield '<div class="entry-diff">'
 
-                            for diffline in lines:
-                                if diffline.startswith('- '):
-                                    yield '<div class="del">'
-                                elif diffline.startswith('+ '):
-                                    yield '<div class="add">'
-                                elif diffline.startswith('! '):
-                                    yield '<div class="mod">'
-                                else:
-                                    yield '<div class="context">'
+                    difflines = json.loads(data)
+                    lines = difflines[3:]
 
-                                yield html.escape(diffline)
+                    for diffline in lines:
+                        if diffline.startswith('- '):
+                            yield '<div class="del">'
+                        elif diffline.startswith('+ '):
+                            yield '<div class="add">'
+                        elif diffline.startswith('! '):
+                            yield '<div class="mod">'
+                        else:
+                            yield '<div class="context">'
 
-                                yield '</div>'
+                        yield html.escape(diffline)
 
-                        history = ''.join(iter(render_difflines()))
+                        yield '</div>'
 
-                        yield ('<div class="entry clearfix">'
-                               '<div class="entry-timestamp">{}</div>'
-                               '<div class="entry-diff">'
-                               '{}'
-                               '</div>'
-                               '</div>').format(timestamp, history)
+                    yield '</div>'
+                    yield '</div>'
 
         return iter(parse_log())
 
@@ -135,8 +130,15 @@ class Form:
 
         self.data = parse_qs(stream)
 
-    def get(self, key):
-        value = self.data[key].pop()  # Just get the first value
+    def get(self, key, default=None):
+        if default and key not in self.data:
+            return default
+
+        try:
+            value = self.data[key].pop()  # Just get the first value
+        except KeyError:
+            return default
+
         return unquote_plus(value)
 
 
@@ -326,7 +328,7 @@ def edit_handler(environ, start_response):
         form = Form(environ)
 
         page.title = form.get('title')
-        page.content = form.get('content')
+        page.content = form.get('content', '')
         page.save()
 
         return redirect(start_response, f'/view/{title}')
