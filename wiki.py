@@ -5,7 +5,7 @@ import os
 import re
 import string
 from os.path import abspath, dirname, join, normcase
-from urllib.parse import parse_qs, unquote_plus
+from urllib.parse import parse_qs, unquote_plus, quote_plus
 from wsgiref.handlers import format_date_time
 from wsgiref.simple_server import make_server
 
@@ -79,8 +79,7 @@ class Form:
 
     def get(self, key):
         value = self.data[key].pop()  # Just get the first value
-        value = unquote_plus(value)
-        return html.escape(value)
+        return unquote_plus(value)
 
 
 # Utils
@@ -171,8 +170,7 @@ def wiki_text(value):
                     # Do not process the chunk if you are still inside a
                     # preformatted block, just return it as it is.
 
-                    print(html.unescape(chunk))
-
+                    print(chunk)
                     continue
 
             if inside_list_block:
@@ -211,6 +209,10 @@ def wiki_text(value):
                 print(f'<li>{text}</li>')
 
             else:
+                # Do not process empty paragraphs
+                if not chunk.strip():
+                    continue
+
                 # Linkify. Search for the form [CamelCase] and
                 # wraps a link on every ocurrence.
                 chunk_with_links = re.sub(
@@ -219,7 +221,7 @@ def wiki_text(value):
                     chunk)
 
                 # Paragraph
-                print(f'<p>{chunk_with_links}</p>')
+                print(f'<p>\n{chunk_with_links}\n</p>')
 
         # Check if there is still an open pre block, if it's close it
         if inside_pre_block:
