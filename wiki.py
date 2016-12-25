@@ -3,9 +3,35 @@ import io
 import os
 import re
 import string
+from os.path import abspath, dirname, join, normcase
 from urllib.parse import parse_qs, unquote_plus
 from wsgiref.handlers import format_date_time
 from wsgiref.simple_server import make_server
+
+# Config setup
+
+
+BASE_DIRECTORY = dirname(abspath(__file__))
+PAGES_DIRECTORY = join(BASE_DIRECTORY, 'pages')
+TEMPLATES_DIRECTORY = join(BASE_DIRECTORY, 'templates')
+
+
+def location(*paths):
+    """
+    Joins one or more path components to the base path component.
+    Returns a normalized, absolute version of the final path.
+    Check the resulting path is located inside the base path, raise ValueError if not.
+    """
+    base = BASE_DIRECTORY
+    paths = [normcase(p) for p in paths]
+
+    path = abspath(join(base, *paths))
+
+    # Check if the resulting path is part of the base part
+    if not path.startswith(base):
+        raise ValueError('Resulting path is not inside the base path.')
+
+    return path
 
 
 # Classes
@@ -17,8 +43,10 @@ class Page:
 
     @classmethod
     def load(cls, title: str):
+        page_location = location(f"pages/{title}.txt")
+
         try:
-            with open(f"pages/{title}.txt", 'r+') as fileobj:
+            with open(page_location, 'r+') as fileobj:
                 page = cls(title)
                 page.content = fileobj.read()
         except IOError:
@@ -27,7 +55,9 @@ class Page:
             return page
 
     def save(self):
-        with open(f"pages/{self.title}.txt", 'w') as fileobj:
+        page_location = location(f"pages/{self.title}.txt")
+
+        with open(page_location, 'w') as fileobj:
             fileobj.write(self.content)
 
 
@@ -47,7 +77,7 @@ class Form:
         self.data = parse_qs(stream)
 
     def get(self, key):
-        value = self.data[key][0]
+        value = self.data[key].pop()  # Just get the first value
         value = unquote_plus(value)
         return escape(value)
 
@@ -63,7 +93,9 @@ def redirect(start_response, location):
 
 def render_template(template_path, **context):
     """Render a string using a file as template and the given context."""
-    with open(template_path, 'r') as fileobj:
+    path = location('templates', template_path)
+
+    with open(path, 'r') as fileobj:
         tpl = string.Template(fileobj.read())
 
     return tpl.safe_substitute(**context)
@@ -121,6 +153,8 @@ def escape(value):
 
 def wiki_text(value):
     """Renders text using a basic wiki syntax."""
+    heading_pattern = re.compile(r'^(?P<level>[#]+)?\s*(?P<text>.*)')
+    list_pattern = re.compile(r'^-\s+(?P<text>.+)')
 
     value = escape(value)
 
@@ -128,10 +162,9 @@ def wiki_text(value):
     with io.StringIO() as output, contextlib.redirect_stdout(output):
 
         inside_pre_block = False
+        inside_list_block = False
 
         for chunk in value.split('\n'):
-            chunk = chunk.strip()
-
             if inside_pre_block:
                 if chunk.startswith('```'):
                     # Close the preformatted block and set the state to false.
@@ -146,10 +179,17 @@ def wiki_text(value):
                     print(chunk)
                     continue
 
+            if inside_list_block:
+                # Close the list block if there is an empty line
+                if chunk.strip() == '':
+                    inside_list_block = False
+                    print('</ul>')
+                    continue
+
             if chunk.startswith('#'):
                 # Extracts level and text from the text
 
-                match = re.match('^(?P<level>[#]+)?\s*(?P<text>.*)', chunk)
+                match = heading_pattern.match(chunk)
                 level = len(match.group('level'))
                 text = match.group('text')
 
@@ -161,6 +201,17 @@ def wiki_text(value):
                 inside_pre_block = True
                 print('<pre>')
 
+            elif chunk.startswith('-'):
+                # Start the list block if
+                if not inside_list_block:
+                    inside_list_block = True
+                    print('<ul>')
+
+                match = list_pattern.match(chunk)
+                text = match.group('text')
+
+                print(f'<li>{text}</li>')
+
             else:
                 # Linkify. Search for the form [CamelCase] and
                 # wraps a link on every ocurrence.
@@ -171,6 +222,10 @@ def wiki_text(value):
 
                 # Paragraph
                 print(f'<p>{chunk_with_links}</p>')
+
+        # Check if there is still an open pre block, if it's close it
+        if inside_pre_block:
+            print('</pre>')
 
         return output.getvalue()
 
@@ -194,7 +249,7 @@ def view_handler(environ, start_response):
     context = {'title': escape(page.title),
                'content': wiki_text(page.content)}
 
-    return template_response(start_response, 'templates/view.html', context)
+    return template_response(start_response, 'view.html', context)
 
 
 def edit_handler(environ, start_response):
@@ -217,14 +272,14 @@ def edit_handler(environ, start_response):
     else:
 
         return template_response(
-            start_response, 'templates/edit.html',
+            start_response, 'edit.html',
             {'title': page.title, 'content': page.content})
 
 
 def assets_handler(environ, start_response):
     """Serves all found files in the assets directory."""
     path = environ['app.match'].group('path')
-    path = os.path.join('assets/', path)
+    path = location('assets/', path)
 
     if os.path.isfile(path):
         return fileobj_response(start_response, path)
