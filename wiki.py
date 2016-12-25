@@ -8,7 +8,7 @@ import string
 from datetime import datetime
 
 from difflib import context_diff
-from os.path import abspath, dirname, join, normcase
+from os.path import abspath, dirname, join, normcase, exists
 from urllib.parse import parse_qs, unquote_plus
 from wsgiref.handlers import format_date_time
 from wsgiref.simple_server import make_server
@@ -61,7 +61,11 @@ class Page:
         page_location = location(f"pages/{self.title}.txt")
         log_location = location(f"pages/{self.title}.log")
 
-        before = open(page_location, 'rb').read().decode()
+        # Check a previous version of the content
+        if exists(page_location):
+            before = open(page_location, 'rb').read().decode()
+        else:
+            before = ''
 
         # If there is no change, don't do a thing.
         if before == self.content:
