@@ -1,4 +1,5 @@
 import contextlib
+import html
 import io
 import os
 import re
@@ -79,7 +80,7 @@ class Form:
     def get(self, key):
         value = self.data[key].pop()  # Just get the first value
         value = unquote_plus(value)
-        return escape(value)
+        return html.escape(value)
 
 
 # Utils
@@ -143,20 +144,12 @@ def fileobj_response(start_response, path):
         return text_response(start_response, 'File not found', status=404)
 
 
-def escape(value):
-    """Replace special characters to return a safe sequence."""
-    return (value
-            .replace('<', '&lt;')
-            .replace('>', '&gt;')
-            .replace('"', "&quot;"))
-
-
 def wiki_text(value):
     """Renders text using a basic wiki syntax."""
     heading_pattern = re.compile(r'^(?P<level>[#]+)?\s*(?P<text>.*)')
     list_pattern = re.compile(r'^-\s+(?P<text>.+)')
 
-    value = escape(value)
+    value = html.escape(value)
 
     # Redirects all print output to a buffer variable `output`
     with io.StringIO() as output, contextlib.redirect_stdout(output):
@@ -168,22 +161,27 @@ def wiki_text(value):
             if inside_pre_block:
                 if chunk.startswith('```'):
                     # Close the preformatted block and set the state to false.
+
                     inside_pre_block = False
                     print('</pre>')
+
                     continue
 
                 else:
                     # Do not process the chunk if you are still inside a
                     # preformatted block, just return it as it is.
 
-                    print(chunk)
+                    print(html.unescape(chunk))
+
                     continue
 
             if inside_list_block:
-                # Close the list block if there is an empty line
                 if chunk.strip() == '':
+                    # Close the list block if there is an empty line
+
                     inside_list_block = False
                     print('</ul>')
+
                     continue
 
             if chunk.startswith('#'):
@@ -246,10 +244,13 @@ def view_handler(environ, start_response):
     if not page:
         return redirect(start_response, f'/edit/{title}')
 
-    context = {'title': escape(page.title),
-               'content': wiki_text(page.content)}
+    title = html.escape(page.title)
+    content = wiki_text(page.content)
 
-    return template_response(start_response, 'view.html', context)
+    return template_response(start_response, 'view.html', {
+        'title': title,
+        'content': content
+    })
 
 
 def edit_handler(environ, start_response):
@@ -270,10 +271,10 @@ def edit_handler(environ, start_response):
 
         return redirect(start_response, f'/view/{title}')
     else:
-
-        return template_response(
-            start_response, 'edit.html',
-            {'title': page.title, 'content': page.content})
+        return template_response(start_response, 'edit.html', {
+            'title': page.title,
+            'content': page.content
+        })
 
 
 def assets_handler(environ, start_response):

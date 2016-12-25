@@ -23,4 +23,4 @@ Assumed knowledge:
 
 ## See the resulting web application
 
-![demo](https://raw.githubusercontent.com/mariocesar/wiki.py/master/docs/_images/demo.gif)
+![demo](https://raw.githubusercontent.com/mariocesar/wiki.py/master/docs/assets/demo.gif)
