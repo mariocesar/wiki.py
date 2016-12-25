@@ -59,3 +59,59 @@ footer {
     font-size: .9rem;
     color: slategrey;
 }
+
+.clearfix {
+    display: block;
+    clear: both;
+}
+
+.clearfix:after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+.history {
+    display: flex;
+    flex-flow: row-reverse wrap-reverse;
+}
+
+.entry {
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.entry:after {
+    display: block;
+    clear: both;
+}
+
+.entry-timestamp {
+    font-weight: bold;
+}
+
+.entry-diff {
+    padding: 1rem;
+    font-size: .8rem;
+    font-family: monospace, Courier;
+    display: block;
+    clear: both;
+    min-height: 1rem;
+}
+
+.entry-diff .del {
+    color: red;
+}
+
+.entry-diff .add {
+    color: green;
+}
+
+.entry-diff .mod {
+    color: dodgerblue;
+}
+
+.entry-diff .context {
+    color: gray;
+}

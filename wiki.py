@@ -1,16 +1,19 @@
 import contextlib
 import html
 import io
+import json
 import os
 import re
 import string
+from datetime import datetime
+
+from difflib import Differ, context_diff
 from os.path import abspath, dirname, join, normcase
-from urllib.parse import parse_qs, unquote_plus, quote_plus
+from urllib.parse import parse_qs, unquote_plus
 from wsgiref.handlers import format_date_time
 from wsgiref.simple_server import make_server
 
 # Config setup
-
 
 BASE_DIRECTORY = dirname(abspath(__file__))
 PAGES_DIRECTORY = join(BASE_DIRECTORY, 'pages')
@@ -57,9 +60,64 @@ class Page:
 
     def save(self):
         page_location = location(f"pages/{self.title}.txt")
+        log_location = location(f"pages/{self.title}.log")
 
-        with open(page_location, 'w') as fileobj:
+        before = open(page_location, 'rb').read().decode()
+
+        # If there is no change, don't do a thing.
+        if before == self.content:
+            return
+
+        # Compare lines to later store the diff
+        fromlines = before.splitlines(keepends=True)
+        tolines = self.content.splitlines(keepends=True)
+
+        diff = list(context_diff(fromlines, tolines))
+        now = datetime.now().strftime("%Y/%m/%d %H:%M")
+        log_entry = '{} - {}\n'.format(now, json.dumps(diff))
+
+        with open(page_location, 'w+') as fileobj, open(log_location, 'a') as logobj:
             fileobj.write(self.content)
+            logobj.write(log_entry)
+
+    @property
+    def history(self):
+        log_location = location(f"pages/{self.title}.log")
+
+        def parse_log():
+            with open(log_location, 'r') as fobj:
+                for line in fobj.readlines():
+                    if line.strip():
+                        timestamp, data = line.split(' - ', maxsplit=1)
+
+                        def render_difflines():
+                            difflines = json.loads(data)
+                            lines = difflines[3:]
+
+                            for diffline in lines:
+                                if diffline.startswith('- '):
+                                    yield '<div class="del">'
+                                elif diffline.startswith('+ '):
+                                    yield '<div class="add">'
+                                elif diffline.startswith('! '):
+                                    yield '<div class="mod">'
+                                else:
+                                    yield '<div class="context">'
+
+                                yield html.escape(diffline)
+
+                                yield '</div>'
+
+                        history = ''.join(iter(render_difflines()))
+
+                        yield ('<div class="entry clearfix">'
+                               '<div class="entry-timestamp">{}</div>'
+                               '<div class="entry-diff">'
+                               '{}'
+                               '</div>'
+                               '</div>').format(timestamp, history)
+
+        return iter(parse_log())
 
 
 class Form:
@@ -279,6 +337,22 @@ def edit_handler(environ, start_response):
         })
 
 
+def history_handler(environ, start_response):
+    """Shows change history for the page."""
+    title = environ['app.match'].group('title')
+    page = Page.load(title)
+
+    if not page:
+        return text_response(start_response, 'File not found', status=404)
+
+    title = html.escape(page.title)
+
+    return template_response(start_response, 'history.html', {
+        'title': title,
+        'history': '\n'.join(page.history)
+    })
+
+
 def assets_handler(environ, start_response):
     """Serves all found files in the assets directory."""
     path = environ['app.match'].group('path')
@@ -317,6 +391,7 @@ with make_server('', 8000, app) as httpd:
     app.add_handler(r'^/$', home_handler)
     app.add_handler(r'^/view/(?P<title>[A-Z][A-Za-z0-9]+)$', view_handler)
     app.add_handler(r'^/edit/(?P<title>[A-Z][A-Za-z0-9]+)$', edit_handler)
+    app.add_handler(r'^/history/(?P<title>[A-Z][A-Za-z0-9]+)$', history_handler)
     app.add_handler(r'^/assets/(?P<path>[\w\d\/-_.]+)$', assets_handler)
 
     try:

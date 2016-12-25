@@ -11,10 +11,13 @@
     <span class="brand">wiki.py</span>
     <a href="/">Root</a> / ${title}
     <small><a href="/edit/${title}">[edit]</a></small>
-    <small><a href="/history/${title}">[history]</a></small>
+    <small><a href="/view/${title}">[view]</a></small>
   </h1>
 </nav>
-${content}
+<h2>History changes</h2>
+<div class="history clearfix">
+  ${history}
+</div>
 <footer>
   <p>
     See the source code in <a href="https://github.com/mariocesar/wiki.py">github.com/mariocesar/wiki.py</a>
